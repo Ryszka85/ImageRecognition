@@ -1,60 +1,34 @@
 
 package com.htlwienwest.imagerecognition.demo;
 
-import org.springframework.boot.autoconfigure.web.servlet.MultipartProperties;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.web.servlet.MultipartConfigFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
-import javax.servlet.MultipartConfigElement;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 import com.amazonaws.services.rekognition.AmazonRekognition;
 import com.amazonaws.services.rekognition.AmazonRekognitionClientBuilder;
-import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.rekognition.model.AmazonRekognitionException;
 import com.amazonaws.services.rekognition.model.DetectLabelsRequest;
 import com.amazonaws.services.rekognition.model.DetectLabelsResult;
 import com.amazonaws.services.rekognition.model.Image;
 import com.amazonaws.services.rekognition.model.Label;
-import com.amazonaws.util.IOUtils;
+
+@CrossOrigin(origins = {"http://82.218.232.122:4200", "http://localhost:4200"}, methods = {RequestMethod.POST, RequestMethod.GET})
 
 @RestController
 public class ImageRecognitionController
 {
-    @Bean
-    public MultipartConfigElement multipartConfigElement() {
-        MultipartConfigFactory factory = new MultipartConfigFactory();
-        factory.setMaxFileSize(DataSize.parse("15MB"));
-        factory.setMaxRequestSize(DataSize.parse("15MB"));
-        return factory.createMultipartConfig();
-    }
-
-
-    @GetMapping(value = "test")
-    public String test()
-    {
-        return "testiger test";
-    }
 
     @PostMapping(path= "getlabels")
-    public String detectLabels(@ModelAttribute MPFLabel img) throws IOException
+    public List<String> detectLabels(@RequestBody BArequest img)
     {
         //convert image in mpf to bytearray/bytebuffer
-        ByteBuffer imageBytes= ByteBuffer.wrap(img.getImg().getInputStream().readAllBytes());
+        ByteBuffer imageBytes= ByteBuffer.wrap(img.getImg());
 
-        ArrayList<String> responseLabels= new ArrayList<>();
+        List<String> responseLabels= new ArrayList<>();
 
         AmazonRekognition rekognitionClient = AmazonRekognitionClientBuilder.defaultClient();
 
@@ -62,8 +36,8 @@ public class ImageRecognitionController
         DetectLabelsRequest request = new DetectLabelsRequest()
                 .withImage(new Image()
                         .withBytes(imageBytes))
-                .withMaxLabels(5)
-                .withMinConfidence(75F);
+                .withMaxLabels(8)
+                .withMinConfidence(70F);
 
         try
         {
@@ -80,17 +54,19 @@ public class ImageRecognitionController
             e.printStackTrace();
         }
 
-        return responseLabels.get(0);
+        return responseLabels;
     }
 }
 
-class MPFLabel implements Serializable
+
+
+class BArequest implements Serializable
 {
-    private MultipartFile img;
+    private byte[] img;
 
-    public MPFLabel() {}
+    public BArequest() {}
 
-    public MultipartFile getImg() { return img; }
+    public byte[] getImg() { return img; }
 
-    public void setImg(MultipartFile img) { this.img = img; }
+    public void setImg(byte[] img) { this.img = img; }
 }
